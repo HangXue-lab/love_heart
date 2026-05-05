@@ -8,15 +8,10 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { width: 100vw; height: 100vh; overflow: hidden; background: #000; user-select: none; -webkit-user-select: none; }
   canvas { display: block; position: absolute; top: 0; left: 0; }
-  .text { position: absolute; top: 22%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; z-index: 10; }
-  .text h1 { font-family: Georgia,serif; font-size: clamp(1.5rem,4vw,3rem); color: #fff; text-shadow:0 0 10px #f47,0 0 30px #f36,0 0 60px #c25; animation: g 2s ease-in-out infinite alternate; }
-  .text p { font-family: Georgia,serif; font-size: clamp(.9rem,1.6vw,1.2rem); color: #ffb3c6; text-shadow:0 0 8px #f47; margin-top:.4em; opacity:.85; }
-  @keyframes g { 0%{text-shadow:0 0 8px #f47,0 0 25px #f36,0 0 50px #c25} 100%{text-shadow:0 0 18px #f69,0 0 45px #f47,0 0 90px #c25} }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div class="text"><h1>I Love You ❤️</h1><p>你是我生命中最美的意外</p></div>
 <script>
 (()=>{
 const c=document.getElementById('c'),ctx=c.getContext('2d');
