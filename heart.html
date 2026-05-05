@@ -6,382 +6,167 @@
 <title>❤️ I Love You ❤️</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    width: 100vw; height: 100vh; overflow: hidden;
-    background: #000; cursor: default;
-    user-select: none; -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
+  body { width: 100vw; height: 100vh; overflow: hidden; background: #000; user-select: none; -webkit-user-select: none; }
   canvas { display: block; position: absolute; top: 0; left: 0; }
-  .text {
-    position: absolute; top: 20%; left: 50%;
-    transform: translate(-50%, -50%); text-align: center;
-    pointer-events: none; z-index: 10;
-  }
-  .text h1 {
-    font-family: 'Georgia', serif;
-    font-size: clamp(1.5rem, 4vw, 3rem); color: #fff;
-    text-shadow: 0 0 20px #ff4477, 0 0 50px #ff3366, 0 0 90px #cc2255;
-    animation: glow 2s ease-in-out infinite alternate;
-    letter-spacing: 0.05em;
-  }
-  .text p {
-    font-family: 'Georgia', serif;
-    font-size: clamp(0.9rem, 1.6vw, 1.2rem); color: #ffb3c6;
-    text-shadow: 0 0 10px #ff4477; margin-top: 0.4em; opacity: 0.9;
-  }
-  @keyframes glow {
-    0%   { text-shadow: 0 0 15px #ff4477, 0 0 40px #ff3366, 0 0 80px #cc2255; }
-    100% { text-shadow: 0 0 25px #ff6699, 0 0 60px #ff4477, 0 0 130px #cc2255; }
-  }
+  .text { position: absolute; top: 22%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; z-index: 10; }
+  .text h1 { font-family: Georgia,serif; font-size: clamp(1.5rem,4vw,3rem); color: #fff; text-shadow:0 0 10px #f47,0 0 30px #f36,0 0 60px #c25; animation: g 2s ease-in-out infinite alternate; }
+  .text p { font-family: Georgia,serif; font-size: clamp(.9rem,1.6vw,1.2rem); color: #ffb3c6; text-shadow:0 0 8px #f47; margin-top:.4em; opacity:.85; }
+  @keyframes g { 0%{text-shadow:0 0 8px #f47,0 0 25px #f36,0 0 50px #c25} 100%{text-shadow:0 0 18px #f69,0 0 45px #f47,0 0 90px #c25} }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div class="text">
-  <h1>I Love You ❤️</h1>
-  <p>你是我生命中最美的意外</p>
-</div>
+<div class="text"><h1>I Love You ❤️</h1><p>你是我生命中最美的意外</p></div>
 <script>
-(() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
-  let W, H;
+(()=>{
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+let W,H;
+function sz(){W=c.width=innerWidth;H=c.height=innerHeight}
+addEventListener('resize',sz);sz();
 
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+const PI2=Math.PI*2;
+
+// ═══ Heart equation ═══
+const hx=t=>16*Math.sin(t)**3;
+const hy=t=>-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+
+// ═══ Precompute polygon for inside test ═══
+const PN=200, pX=new Float64Array(PN), pY=new Float64Array(PN);
+for(let i=0;i<PN;i++){const t=i/PN*PI2;pX[i]=hx(t);pY[i]=hy(t);}
+function inside(x,y){let r=!1;for(let i=0,j=PN-1;i<PN;i++){const xi=pX[i],yi=pY[i],xj=pX[j],yj=pY[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)r=!r;j=i}return r}
+
+// Heart visual center
+const HCX=0, HCY=6;
+
+// ═══ Heart particles ═══
+const HCNT=500; let heart=[];
+function mkHeart(){
+  for(let a=0;a<40;a++){
+    const x=(Math.random()-.5)*34, y=Math.random()*23-6;
+    if(inside(x,y)){
+      const dx=x-HCX, dy=y-HCY, dist=Math.sqrt(dx*dx+dy*dy)||1;
+      return {x,y,dx:dx/dist,dy:dy/dist,dist, r:.7+Math.random()*2.8, h:340+Math.random()*18, a:.5+Math.random()*.5, ph:Math.random()*PI2, oA:.1+Math.random()*1.0, oS:.3+Math.random()*.8};
+    }
   }
-  window.addEventListener('resize', resize);
-  resize();
+  const t=Math.random()*PI2;
+  const X=hx(t),Y=hy(t),dx2=X-HCX,dy2=Y-HCY,dist2=Math.sqrt(dx2*dx2+dy2*dy2)||1;
+  return {x:X,y:Y,dx:dx2/dist2,dy:dy2/dist2,dist:dist2,r:1+Math.random()*2.2,h:340+Math.random()*18,a:.5+Math.random()*.5,ph:Math.random()*PI2,oA:.2+Math.random()*1.2,oS:.3+Math.random()*.8};
+}
+for(let i=0;i<HCNT;i++)heart.push(mkHeart());
 
-  // ═══════════════════════════════════════════════
-  // Heart parametric equation
-  // ═══════════════════════════════════════════════
-  function hx(t) { return 16 * Math.pow(Math.sin(t), 3); }
-  function hy(t) { return -(13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)); }
+// ═══ Pool, falling, splash, ripples ═══
+const PCNT=80; let pool=[], falling=[], splash=[], ripples=[];
+function mkPool(){
+  return {x:Math.random()*W, baseY:H*(.76+Math.random()*.17), r:2+Math.random()*4.5, h:230+Math.random()*40, a:.2+Math.random()*.4, ph:Math.random()*PI2, bA:2+Math.random()*8, bS:.3+Math.random()*.6, pX:0,pY:0};
+}
+for(let i=0;i<PCNT;i++)pool.push(mkPool());
 
-  // Pre-compute heart polygon for point-in-polygon test
-  const POLY_N = 200;
-  const polyX = new Float64Array(POLY_N);
-  const polyY = new Float64Array(POLY_N);
-  for (let i = 0; i < POLY_N; i++) {
-    const t = (i / POLY_N) * Math.PI * 2;
-    polyX[i] = hx(t);
-    polyY[i] = hy(t);
+let T=0, F=0;
+
+function draw(){
+  T+=.016; F++;
+  const scl=Math.min(W,H)*.03, cx=W/2, cy=H/2-H*.06, beat=1+.06*Math.sin(T*4), surf=H*.76;
+
+  // Clear + black bg
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+
+  // Heart ambient glow
+  const g1=ctx.createRadialGradient(cx,cy,scl*2,cx,cy,scl*15);
+  g1.addColorStop(0,'rgba(255,40,80,.12)'); g1.addColorStop(.5,'rgba(255,30,70,.03)'); g1.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g1; ctx.beginPath(); ctx.arc(cx,cy,scl*15,0,PI2); ctx.fill();
+
+  // Pool glow
+  const g2=ctx.createRadialGradient(cx,surf+H*.06,H*.02,cx,surf+H*.08,H*.38);
+  g2.addColorStop(0,'rgba(130,150,255,.05)'); g2.addColorStop(.5,'rgba(100,130,240,.02)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g2; ctx.fillRect(0,surf-H*.1,W,H*.35);
+
+  // ═══ HEART PARTICLES ═══
+  for(let i=heart.length-1;i>=0;i--){
+    const p=heart[i];
+    // Base: scale * beat
+    let sx=cx+p.x*scl*beat, sy=cy+p.y*scl*beat;
+    // Extra radial spread for soft edge during beat
+    const spread=(beat-1)*p.dist*scl*.35;
+    sx+=p.dx*spread; sy+=p.dy*spread;
+    // Tiny orbit
+    p.ph+=p.oS*.04;
+    sx+=Math.cos(p.ph)*p.oA; sy+=Math.sin(p.ph)*p.oA;
+
+    // Detach bottom particles (y < -3 in norm)
+    if(p.y<-3&&F%2===0&&Math.random()<.04){
+      falling.push({x:sx,y:sy, vx:(Math.random()-.5)*.6, vy:Math.random()*1.2+.8, r:p.r, h:p.h, a:p.a});
+      heart.splice(i,1); continue;
+    }
+    // Draw
+    ctx.beginPath(); ctx.arc(sx,sy,p.r*3,0,PI2);
+    ctx.fillStyle=`hsla(${p.h},100%,55%,${p.a*.06})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(sx,sy,p.r,0,PI2);
+    ctx.fillStyle=`hsla(${p.h},100%,58%,${p.a})`; ctx.fill();
   }
+  while(heart.length<HCNT)heart.push(mkHeart());
 
-  // Ray-casting point-in-polygon
-  function insideHeart(px, py) {
-    let inside = false;
-    for (let i = 0, j = POLY_N - 1; i < POLY_N; i++) {
-      const xi = polyX[i], yi = polyY[i];
-      const xj = polyX[j], yj = polyY[j];
-      if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
-        inside = !inside;
+  // ═══ FALLING PARTICLES ═══
+  for(let i=falling.length-1;i>=0;i--){
+    const f=falling[i];
+    f.vy+=.28; f.x+=f.vx; f.y+=f.vy;
+    if(f.y>=surf){
+      // Splash
+      const n=5+Math.floor(Math.random()*8);
+      for(let j=0;j<n;j++){
+        const a=Math.random()*PI2, sp=2+Math.random()*5;
+        splash.push({x:f.x,y:surf, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp*.6-Math.random()*4, r:1+Math.random()*2.5, h:235+Math.random()*35, a:.75+Math.random()*.25, life:1});
       }
-      j = i;
-    }
-    return inside;
-  }
-
-  // Heart center (approximate visual centroid)
-  const HCX = 0, HCY = 6;
-
-  // ═══════════════════════════════════════════════
-  // Heart particles (fill interior)
-  // ═══════════════════════════════════════════════
-  const HCOUNT = 500;
-  let heart = [];
-
-  function createHeartParticle() {
-    // Rejection sampling in bounding box
-    for (let a = 0; a < 40; a++) {
-      const x = (Math.random() - 0.5) * 34;  // [-17, 17]
-      const y = Math.random() * 23 - 6;       // [-6, 17]
-      if (insideHeart(x, y)) {
-        // Distance to center for spread calculation
-        const dx = x - HCX, dy = y - HCY;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        return {
-          x, y,
-          dx: dx / dist, dy: dy / dist, dist, // unit radial direction from center
-          r: 0.7 + Math.random() * 2.8,
-          hue: 340 + Math.random() * 16,
-          alpha: 0.55 + Math.random() * 0.45,
-          phase: Math.random() * Math.PI * 2,
-          orbitR: 0.1 + Math.random() * 1.0,
-          orbitS: 0.3 + Math.random() * 0.8,
-        };
+      // Ripple
+      ripples.push({x:f.x,y:surf,r:0,a:1});
+      // Push pool
+      for(const pp of pool){
+        const dx=pp.x-f.x, dy=pp.baseY-surf, dist=Math.sqrt(dx*dx+dy*dy)||1;
+        if(dist<90){const force=(1-dist/90)*20; pp.pX+=dx/dist*force; pp.pY+=dy/dist*force*.4;}
       }
+      // Add to pool
+      pool.push({x:f.x+(Math.random()-.5)*40, baseY:surf+Math.random()*H*.08, r:f.r*.7, h:235+Math.random()*35, a:.2+Math.random()*.35, ph:Math.random()*PI2, bA:2+Math.random()*8, bS:.3+Math.random()*.6, pX:0,pY:0});
+      falling.splice(i,1); continue;
     }
-    // Fallback: boundary point
-    const t = Math.random() * Math.PI * 2;
-    const dx2 = hx(t) - HCX, dy2 = hy(t) - HCY;
-    const dist2 = Math.sqrt(dx2*dx2 + dy2*dy2) || 1;
-    return {
-      x: hx(t), y: hy(t),
-      dx: dx2 / dist2, dy: dy2 / dist2, dist: dist2,
-      r: 1.0 + Math.random() * 2.2,
-      hue: 340 + Math.random() * 16,
-      alpha: 0.5 + Math.random() * 0.5,
-      phase: Math.random() * Math.PI * 2,
-      orbitR: 0.2 + Math.random() * 1.2,
-      orbitS: 0.3 + Math.random() * 0.8,
-    };
+    // Color transition pink→blue
+    const t=Math.min(1,Math.max(0,(f.y-surf+60)/80)), ch=f.h+(245-f.h)*t;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r*2,0,PI2);
+    ctx.fillStyle=`hsla(${ch},80%,${45+t*15}%,${f.a*.08})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,PI2);
+    ctx.fillStyle=`hsla(${ch},90%,${55+t*18}%,${f.a})`; ctx.fill();
   }
 
-  function initHeart() {
-    heart = [];
-    for (let i = 0; i < HCOUNT; i++) heart.push(createHeartParticle());
+  // ═══ POOL PARTICLES ═══
+  for(let i=pool.length-1;i>=0;i--){
+    const p=pool[i];
+    p.ph+=p.bS*.03; p.pX*=.93; p.pY*=.93;
+    const py=p.baseY+Math.sin(p.ph)*p.bA+p.pY, pxx=p.x+p.pX;
+    ctx.beginPath(); ctx.arc(pxx,py,p.r*2.5,0,PI2);
+    ctx.fillStyle=`hsla(${p.h},55%,66%,${p.a*.08})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(pxx,py,p.r*.7,0,PI2);
+    ctx.fillStyle=`hsla(${p.h},60%,78%,${p.a*.9})`; ctx.fill();
   }
-  initHeart();
+  while(pool.length>PCNT+40)pool.shift();
 
-  // ═══════════════════════════════════════════════
-  // Dynamic arrays
-  // ═══════════════════════════════════════════════
-  let falling = [];   // particles falling from heart
-  let splash = [];    // splash debris on impact
-  let ripples = [];   // expanding rings
-
-  // Pool particles (bottom zone)
-  const PCOUNT = 90;
-  let pool = [];
-  function createPoolParticle() {
-    return {
-      x: Math.random() * W,
-      baseY: H * (0.75 + Math.random() * 0.18),
-      r: 2 + Math.random() * 4.5,
-      hue: 230 + Math.random() * 40,
-      alpha: 0.25 + Math.random() * 0.4,
-      phase: Math.random() * Math.PI * 2,
-      bobA: 2 + Math.random() * 8,
-      bobS: 0.3 + Math.random() * 0.6,
-      pushX: 0, pushY: 0,
-    };
-  }
-  function initPool() {
-    pool = [];
-    for (let i = 0; i < PCOUNT; i++) pool.push(createPoolParticle());
-  }
-  initPool();
-
-  let time = 0, frame = 0;
-
-  // ═══════════════════════════════════════════════
-  // Animation loop
-  // ═══════════════════════════════════════════════
-  function draw() {
-    time += 0.016; frame++;
-    const scl = Math.min(W, H) * 0.03;
-    const cx = W / 2;
-    const cy = H / 2 - H * 0.06;
-    const beat = 1 + 0.06 * Math.sin(time * 4.0);      // breathing 0.94~1.06
-    const poolSurface = H * 0.76;
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, W, H);
-
-    // ── Heart ambient glow ─────────────────────
-    const hGlow = ctx.createRadialGradient(cx, cy, scl*2, cx, cy, scl*15);
-    hGlow.addColorStop(0, 'rgba(255,40,80,0.14)');
-    hGlow.addColorStop(0.6, 'rgba(255,30,70,0.04)');
-    hGlow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = hGlow;
-    ctx.beginPath(); ctx.arc(cx, cy, scl*15, 0, Math.PI*2); ctx.fill();
-
-    // ── Pool glow ──────────────────────────────
-    const pGlow = ctx.createRadialGradient(cx, poolSurface + H*0.05, H*0.03, cx, poolSurface + H*0.08, H*0.4);
-    pGlow.addColorStop(0, 'rgba(130,150,255,0.06)');
-    pGlow.addColorStop(0.5, 'rgba(100,130,240,0.025)');
-    pGlow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = pGlow;
-    ctx.fillRect(0, poolSurface - H*0.1, W, H*0.35);
-
-    // ═══════════════════════════════════════════
-    // UPDATE & DRAW HEART PARTICLES
-    // ═══════════════════════════════════════════
-    for (let i = heart.length - 1; i >= 0; i--) {
-      const p = heart[i];
-
-      // Core position: scale * beat + radial spread
-      // During expansion (beat>1), push outward from heart center
-      const spread = (beat - 1) * p.dist * scl * 0.38;
-      const sx = cx + p.x * scl + p.dx * spread;
-      const sy = cy + p.y * scl + p.dy * spread;
-
-      // Tiny orbit for liveliness
-      p.phase += p.orbitS * 0.04;
-      const ox = Math.cos(p.phase) * p.orbitR;
-      const oy = Math.sin(p.phase) * p.orbitR;
-
-      const px = sx + ox;
-      const py = sy + oy;
-
-      // ── Detach bottom particles ────────────
-      // Bottom tip is near y=-6 in normalized coords
-      if (p.y < -3 && frame % 2 === 0 && Math.random() < 0.04) {
-        falling.push({
-          x: px, y: py,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: Math.random() * 1.2 + 0.8,
-          r: p.r, hue: p.hue, alpha: p.alpha,
-        });
-        heart.splice(i, 1);
-        continue;
-      }
-
-      // ── Draw ───────────────────────────────
-      // Soft outer glow
-      ctx.beginPath();
-      ctx.arc(px, py, p.r * 3, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${p.hue},100%,55%,${p.alpha * 0.06})`;
-      ctx.fill();
-      // Core
-      ctx.beginPath();
-      ctx.arc(px, py, p.r, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.alpha})`;
-      ctx.fill();
-    }
-
-    // Refill heart
-    while (heart.length < HCOUNT) heart.push(createHeartParticle());
-
-    // ═══════════════════════════════════════════
-    // UPDATE FALLING PARTICLES
-    // ═══════════════════════════════════════════
-    for (let i = falling.length - 1; i >= 0; i--) {
-      const f = falling[i];
-      f.vy += 0.28;  // gravity
-      f.x += f.vx;
-      f.y += f.vy;
-
-      if (f.y >= poolSurface) {
-        // ── SPLASH ──────────────────────────
-        const n = 6 + Math.floor(Math.random() * 10);
-        for (let j = 0; j < n; j++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = 2 + Math.random() * 5;
-          splash.push({
-            x: f.x, y: poolSurface,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed * 0.6 - Math.random() * 4,
-            r: 1 + Math.random() * 2.5,
-            hue: 235 + Math.random() * 35,
-            alpha: 0.75 + Math.random() * 0.25,
-            life: 1.0,
-          });
-        }
-        // ── RIPPLE ──────────────────────────
-        ripples.push({ x: f.x, y: poolSurface, r: 0, alpha: 1.0 });
-
-        // ── Push nearby pool particles ──────
-        for (const pp of pool) {
-          const ddx = pp.x - f.x;
-          const ddy = pp.baseY - poolSurface;
-          const dist = Math.sqrt(ddx*ddx + ddy*ddy) || 1;
-          if (dist < 90) {
-            const force = (1 - dist/90) * 20;
-            pp.pushX += (ddx / dist) * force;
-            pp.pushY += (ddy / dist) * force * 0.4;
-          }
-        }
-
-        // ── Add fallen particle to pool ─────
-        pool.push({
-          x: f.x + (Math.random() - 0.5) * 40,
-          baseY: poolSurface + Math.random() * H * 0.1,
-          r: f.r * 0.7,
-          hue: 235 + Math.random() * 35,
-          alpha: 0.25 + Math.random() * 0.35,
-          phase: Math.random() * Math.PI * 2,
-          bobA: 2 + Math.random() * 8,
-          bobS: 0.3 + Math.random() * 0.6,
-          pushX: 0, pushY: 0,
-        });
-
-        falling.splice(i, 1);
-        continue;
-      }
-
-      // Color transition: pink → blue as approaching pool
-      const t = Math.min(1, Math.max(0, (f.y - poolSurface + 60) / 80));
-      const curHue = f.hue + (245 - f.hue) * t;
-
-      // Draw falling particle
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r * 2, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${curHue},80%,${45+t*15}%,${f.alpha * 0.08})`;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${curHue},90%,${55+t*18}%,${f.alpha})`;
-      ctx.fill();
-    }
-
-    // ═══════════════════════════════════════════
-    // UPDATE POOL PARTICLES
-    // ═══════════════════════════════════════════
-    for (let i = pool.length - 1; i >= 0; i--) {
-      const p = pool[i];
-      p.phase += p.bobS * 0.03;
-      p.pushX *= 0.93;
-      p.pushY *= 0.93;
-      const py = p.baseY + Math.sin(p.phase) * p.bobA + p.pushY;
-      const px = p.x + p.pushX;
-
-      // Draw
-      ctx.beginPath();
-      ctx.arc(px, py, p.r * 2.5, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${p.hue},55%,66%,${p.alpha * 0.08})`;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(px, py, p.r * 0.7, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${p.hue},60%,78%,${p.alpha * 0.9})`;
-      ctx.fill();
-    }
-
-    // Cap pool size
-    while (pool.length > PCOUNT + 40) pool.shift();
-
-    // ═══════════════════════════════════════════
-    // UPDATE SPLASH PARTICLES
-    // ═══════════════════════════════════════════
-    for (let i = splash.length - 1; i >= 0; i--) {
-      const s = splash[i];
-      s.vy += 0.22;
-      s.x += s.vx;
-      s.y += s.vy;
-      s.life -= 0.018;
-      if (s.life <= 0 || s.y > H + 30) { splash.splice(i, 1); continue; }
-
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r * s.life, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${s.hue},80%,72%,${s.alpha * s.life})`;
-      ctx.fill();
-    }
-
-    // ═══════════════════════════════════════════
-    // DRAW RIPPLES
-    // ═══════════════════════════════════════════
-    for (let i = ripples.length - 1; i >= 0; i--) {
-      const w = ripples[i];
-      w.r += 2.5;
-      w.alpha -= 0.025;
-      if (w.alpha <= 0) { ripples.splice(i, 1); continue; }
-
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, w.r, 0, Math.PI*2);
-      ctx.strokeStyle = `rgba(130,155,255,${w.alpha * 0.3})`;
-      ctx.lineWidth = 2 * w.alpha;
-      ctx.stroke();
-    }
-
-    requestAnimationFrame(draw);
+  // ═══ SPLASH ═══
+  for(let i=splash.length-1;i>=0;i--){
+    const s=splash[i];
+    s.vy+=.22; s.x+=s.vx; s.y+=s.vy; s.life-=.018;
+    if(s.life<=0||s.y>H+30){splash.splice(i,1);continue}
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r*s.life,0,PI2);
+    ctx.fillStyle=`hsla(${s.h},80%,72%,${s.a*s.life})`; ctx.fill();
   }
 
-  draw();
+  // ═══ RIPPLES ═══
+  for(let i=ripples.length-1;i>=0;i--){
+    const w=ripples[i];
+    w.r+=2.5; w.a-=.025;
+    if(w.a<=0){ripples.splice(i,1);continue}
+    ctx.beginPath(); ctx.arc(w.x,w.y,w.r,0,PI2);
+    ctx.strokeStyle=`rgba(130,155,255,${w.a*.3})`; ctx.lineWidth=2*w.a; ctx.stroke();
+  }
+  requestAnimationFrame(draw);
+}
+draw();
 })();
 </script>
 </body>
