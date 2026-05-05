@@ -10,19 +10,18 @@
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    background: #0a0a0a;
+    background: #08080c;
     cursor: default;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
   canvas {
     display: block;
     position: absolute;
     top: 0; left: 0;
   }
-  .text-overlay {
+  .text {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -31,290 +30,135 @@
     pointer-events: none;
     z-index: 10;
   }
-  .text-overlay h1 {
+  .text h1 {
     font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: clamp(2rem, 6vw, 4.5rem);
+    font-size: clamp(1.8rem, 5vw, 4rem);
     color: #fff;
     text-shadow:
-      0 0 10px #ff3366,
-      0 0 20px #ff3366,
-      0 0 40px #ff3366,
-      0 0 80px #ff3366,
-      0 0 120px #c41e3a;
-    animation: textGlow 2s ease-in-out infinite alternate;
-    letter-spacing: 0.05em;
+      0 0 10px #ff4477,
+      0 0 30px #ff4477,
+      0 0 60px #ff3366,
+      0 0 100px #cc2255;
+    animation: glow 2s ease-in-out infinite alternate;
   }
-  .text-overlay p {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: clamp(1rem, 2vw, 1.5rem);
+  .text p {
+    font-family: 'Georgia', serif;
+    font-size: clamp(0.9rem, 1.8vw, 1.3rem);
     color: #ffb3c6;
-    text-shadow: 0 0 10px #ff3366;
-    margin-top: 0.5em;
-    opacity: 0.8;
+    text-shadow: 0 0 10px #ff4477;
+    margin-top: 0.4em;
+    opacity: 0.85;
   }
-  @keyframes textGlow {
-    0% { text-shadow: 0 0 10px #ff3366, 0 0 20px #ff3366, 0 0 40px #ff3366, 0 0 80px #c41e3a; }
-    100% { text-shadow: 0 0 20px #ff6699, 0 0 40px #ff3366, 0 0 80px #ff3366, 0 0 120px #c41e3a, 0 0 160px #ff3366; }
+  @keyframes glow {
+    0%   { text-shadow: 0 0 10px #ff4477, 0 0 30px #ff4477, 0 0 60px #ff3366, 0 0 100px #cc2255; }
+    100% { text-shadow: 0 0 20px #ff6699, 0 0 50px #ff4477, 0 0 80px #ff3366, 0 0 140px #cc2255; }
   }
 </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<div class="text-overlay">
+<canvas id="c"></canvas>
+<div class="text">
   <h1>I Love You ❤️</h1>
   <p>你是我生命中最美的意外</p>
 </div>
 
 <script>
 (() => {
-  const canvas = document.getElementById('canvas');
+  const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
   let W, H;
 
   function resize() {
-    W = canvas.width = window.innerWidth;
+    W = canvas.width  = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    initStars();
   }
   window.addEventListener('resize', resize);
   resize();
 
-  // ── Heart parametric equation ──────────────────────────
-  function scale() { return Math.min(W, H) * 0.03; }
-  function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
-  function heartY(t) { return -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)); }
-  const cx = () => W / 2;
-  const cy = () => H / 2 - H * 0.04;
+  // ── Heart curve ─────────────────────────────────
+  function hx(t) { return 16 * Math.pow(Math.sin(t), 3); }
+  function hy(t) { return -(13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)); }
 
-  // ── Heart particles ────────────────────────────────────
-  const HEART_PARTICLE_COUNT = 350;
-  const heartParticles = [];
-
-  for (let i = 0; i < HEART_PARTICLE_COUNT; i++) {
-    heartParticles.push({
-      t: (i / HEART_PARTICLE_COUNT) * Math.PI * 2,
-      jitter: 0.85 + Math.random() * 0.3,
-      x: 0, y: 0,
-      size: 1.2 + Math.random() * 2.8,
+  // ── Particles ───────────────────────────────────
+  const N = 600;
+  const particles = [];
+  for (let i = 0; i < N; i++) {
+    const t = (i / N) * Math.PI * 2;
+    // Random offset for 3D volume feel
+    const jx = (Math.random() - 0.5) * 0.35;
+    const jy = (Math.random() - 0.5) * 0.35;
+    particles.push({
+      t,
+      jx, jy,
+      r: 1.0 + Math.random() * 3.0,
       hue: 340 + Math.random() * 20,
-      alpha: 0.6 + Math.random() * 0.4,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.3 + Math.random() * 0.7,
+      alpha: 0.55 + Math.random() * 0.45,
+      orbitAmp: 0.5 + Math.random() * 2.5,
+      orbitSpd: 0.2 + Math.random() * 1.2,
+      orbitPhs: Math.random() * Math.PI * 2,
+      highlight: Math.random() < 0.08, // ~8% are highlight particles
     });
   }
 
-  // ── Stars ──────────────────────────────────────────────
-  const STAR_COUNT = 120;
-  const stars = [];
-  function initStars() {
-    stars.length = 0;
-    for (let i = 0; i < STAR_COUNT; i++) {
-      stars.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        size: 0.4 + Math.random() * 1.6,
-        alpha: 0.3 + Math.random() * 0.7,
-        twinkleSpeed: 0.005 + Math.random() * 0.03,
-        twinklePhase: Math.random() * Math.PI * 2,
-      });
-    }
-  }
-  initStars();
-
-  // ── Floating hearts ────────────────────────────────────
-  const FLOATING_MAX = 25;
-  const floatingHearts = [];
-
-  function spawnFloatingHeart() {
-    const s = 0.6 + Math.random() * 1.8;
-    floatingHearts.push({
-      x: Math.random() * W * 0.8 + W * 0.1,
-      y: H + 20,
-      scale: s,
-      speed: 1.2 + Math.random() * 2.5,
-      wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.01 + Math.random() * 0.03,
-      alpha: 0.5 + Math.random() * 0.5,
-      size: 8 + Math.random() * 18,
-      hue: 340 + Math.random() * 20,
-    });
-  }
-
-  // ── Mouse trail ────────────────────────────────────────
-  const TRAIL_MAX = 40;
-  const trailParticles = [];
-  let mouseX = -100, mouseY = -100;
-  let mouseActive = false;
-
-  window.addEventListener('mousemove', e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    mouseActive = true;
-  });
-  window.addEventListener('mouseleave', () => { mouseActive = false; });
-  window.addEventListener('touchmove', e => {
-    mouseX = e.touches[0].clientX;
-    mouseY = e.touches[0].clientY;
-    mouseActive = true;
-  }, { passive: true });
-  window.addEventListener('touchend', () => { mouseActive = false; });
-
-  // ── Draw small heart path ──────────────────────────────
-  function drawSmallHeart(ctx, x, y, size) {
-    const s = size / 18;
-    ctx.beginPath();
-    const pts = 40;
-    for (let i = 0; i <= pts; i++) {
-      const t = (i / pts) * Math.PI * 2;
-      const hx = x + heartX(t) * s;
-      const hy = y + heartY(t) * s;
-      if (i === 0) ctx.moveTo(hx, hy);
-      else ctx.lineTo(hx, hy);
-    }
-    ctx.closePath();
-  }
-
-  // ── Animation loop ─────────────────────────────────────
   let time = 0;
 
-  function animate() {
+  function draw() {
     time += 0.016;
+    const scl = Math.min(W, H) * 0.03;        // scale factor
+    const cx = W / 2;
+    const cy = H / 2 - H * 0.04;
+    const beat = 1 + 0.07 * Math.sin(time * 4.0); // breathing 0.93 ~ 1.07
+
     ctx.clearRect(0, 0, W, H);
 
-    // Background gradient
-    const bgGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
-    bgGrad.addColorStop(0, '#1a0a12');
-    bgGrad.addColorStop(0.7, '#0d0d14');
-    bgGrad.addColorStop(1, '#060608');
-    ctx.fillStyle = bgGrad;
+    // ── Background ──────────────────────────────
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.75);
+    bg.addColorStop(0, '#180a10');
+    bg.addColorStop(0.6, '#0a0a10');
+    bg.addColorStop(1, '#050508');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    // Stars
-    for (const s of stars) {
-      s.twinklePhase += s.twinkleSpeed;
-      const alpha = s.alpha * (0.5 + 0.5 * Math.sin(s.twinklePhase));
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,230,240,${alpha})`;
-      ctx.fill();
-    }
-
-    // Breathing effect
-    const breathe = 1 + 0.04 * Math.sin(time * 2.5);
-    const centerX = cx();
-    const centerY = cy();
-
-    // Heart particles
-    const sc = scale();
-    for (const p of heartParticles) {
-      const bx = centerX + heartX(p.t) * sc * p.jitter * breathe;
-      const by = centerY + heartY(p.t) * sc * p.jitter * breathe;
-      // Small orbital motion
-      const orbX = Math.cos(time * p.speed + p.phase) * 1.5;
-      const orbY = Math.sin(time * p.speed + p.phase) * 1.5;
-      p.x = bx + orbX;
-      p.y = by + orbY;
-    }
-
-    // Draw heart glow layer
+    // ── Big soft glow behind heart ──────────────
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    // Large soft glow
-    const glowGrad = ctx.createRadialGradient(centerX, centerY, sc * 3, centerX, centerY, sc * 14);
-    glowGrad.addColorStop(0, 'rgba(255,51,102,0.25)');
-    glowGrad.addColorStop(0.5, 'rgba(255,30,80,0.08)');
-    glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glowGrad;
+    const glow = ctx.createRadialGradient(cx, cy, scl * 2, cx, cy, scl * 17);
+    glow.addColorStop(0, 'rgba(255,50,90,0.18)');
+    glow.addColorStop(0.4, 'rgba(255,40,75,0.06)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, sc * 14, 0, Math.PI * 2);
+    ctx.arc(cx, cy, scl * 17, 0, Math.PI * 2);
     ctx.fill();
-
-    // Draw heart particles
-    for (const p of heartParticles) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${p.hue}, 90%, 60%, ${p.alpha})`;
-      ctx.fill();
-      // Tiny glow
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${p.hue}, 100%, 55%, ${p.alpha * 0.15})`;
-      ctx.fill();
-    }
     ctx.restore();
 
-    // Floating hearts
-    for (let i = floatingHearts.length - 1; i >= 0; i--) {
-      const f = floatingHearts[i];
-      f.y -= f.speed;
-      f.wobble += f.wobbleSpeed;
-      f.x += Math.sin(f.wobble) * 0.4;
+    // ── Draw particles ──────────────────────────
+    for (const p of particles) {
+      // Position on heart curve * beat * scale + random offset + orbit
+      const bx = cx + (hx(p.t) + p.jx) * scl * beat;
+      const by = cy + (hy(p.t) + p.jy) * scl * beat;
+      const ox = Math.cos(time * p.orbitSpd + p.orbitPhs) * p.orbitAmp;
+      const oy = Math.sin(time * p.orbitSpd + p.orbitPhs) * p.orbitAmp;
+      const px = bx + ox;
+      const py = by + oy;
 
-      if (f.y < -50) {
-        floatingHearts.splice(i, 1);
-        continue;
-      }
-
-      const hx = f.x;
-      const hy = f.y;
-      const hs = f.size * f.scale;
-
-      ctx.save();
-      ctx.globalAlpha = f.alpha;
-      ctx.shadowColor = '#ff3366';
-      ctx.shadowBlur = 8;
-      drawSmallHeart(ctx, hx, hy, hs);
-      ctx.fillStyle = `hsl(${f.hue}, 85%, 62%)`;
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Maintain floating heart count
-    while (floatingHearts.length < FLOATING_MAX) spawnFloatingHeart();
-
-    // Mouse trail (throttle to every 2nd frame)
-    if (mouseActive && Math.floor(time * 60) % 2 === 0) {
-      trailParticles.push({
-        x: mouseX,
-        y: mouseY,
-        life: 1,
-        size: 3 + Math.random() * 6,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5 - 0.5,
-        hue: 340 + Math.random() * 20,
-      });
-    }
-
-    for (let i = trailParticles.length - 1; i >= 0; i--) {
-      const t = trailParticles[i];
-      t.life -= 0.02;
-      t.x += t.vx;
-      t.y += t.vy;
-      t.vy -= 0.05;
-
-      if (t.life <= 0) {
-        trailParticles.splice(i, 1);
-        continue;
-      }
-
+      // Glow halo (larger, faint)
       ctx.beginPath();
-      ctx.arc(t.x, t.y, t.size * t.life, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${t.hue}, 100%, 65%, ${t.life * 0.8})`;
+      ctx.arc(px, py, p.r * (p.highlight ? 5 : 3), 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 100%, 55%, ${p.alpha * 0.12})`;
       ctx.fill();
+
+      // Core dot
       ctx.beginPath();
-      ctx.arc(t.x, t.y, t.size * t.life * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${t.hue}, 100%, 55%, ${t.life * 0.2})`;
+      ctx.arc(px, py, p.r * (p.highlight ? 1.8 : 1.0), 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 100%, ${p.highlight ? 72 : 60}%, ${p.alpha})`;
       ctx.fill();
     }
 
-    // Cap trail particles
-    while (trailParticles.length > TRAIL_MAX) trailParticles.shift();
-
-    requestAnimationFrame(animate);
+    requestAnimationFrame(draw);
   }
 
-  // ── Start ──────────────────────────────────────────────
-  animate();
+  draw();
 })();
 </script>
 </body>
