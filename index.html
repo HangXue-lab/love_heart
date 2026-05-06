@@ -165,7 +165,81 @@ gradient.addColorStop(1,    'rgba(0,0,0,0)');
 gctx.fillStyle = gradient;
 gctx.fillRect(0, 0, glowSize, glowSize);
 
-// --- 6. 渲染循环 ---
+// --- 6. 花瓣粒子 ---
+const PETAL_COUNT = 60;
+const petals = [];
+
+const PETAL_COLORS = [
+  [255, 182, 193],
+  [255, 160, 180],
+  [255, 200, 210],
+  [255, 220, 230],
+  [240, 150, 170],
+];
+
+function createPetal() {
+  const [r, g, b] = PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)];
+  return {
+    x: Math.random() * 1.4 - 0.2,
+    y: -0.05 - Math.random() * 0.15,
+    size: Math.random() * 5 + 3,
+    speedY: Math.random() * 0.00018 + 0.00010,
+    speedX: (Math.random() - 0.5) * 0.00012,
+    rot: Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.025,
+    sway: Math.random() * 0.6 + 0.3,
+    swayOffset: Math.random() * Math.PI * 2,
+    opacity: Math.random() * 0.45 + 0.45,
+    r, g, b,
+  };
+}
+
+for (let i = 0; i < PETAL_COUNT; i++) {
+  const p = createPetal();
+  p.y = Math.random();
+  petals.push(p);
+}
+
+function drawPetal(px, py, size, rot, opacity, r, g, b) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(rot);
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// --- 7. 文字渲染 ---
+function drawText(t) {
+  const beat = heartbeatScale(t);
+  const textY = cy - heartScale * 1.55;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+
+  const pulse = 1 + (1 - beat) * 0.06;
+  const fontSize = Math.round(Math.min(W, H) * 0.058 * pulse);
+
+  ctx.font = `bold ${fontSize}px "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.shadowColor = 'rgba(255, 100, 140, 0.9)';
+  ctx.shadowBlur = 22;
+  ctx.fillStyle = 'rgba(255, 220, 230, 0.95)';
+  ctx.fillText('为羊崽跳动', cx, textY);
+
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.fillText('为羊崽跳动', cx, textY);
+
+  ctx.restore();
+}
+
+// --- 8. 渲染循环 ---
 function draw(time) {
   const t = time * 0.001;
   const beat = heartbeatScale(t);
@@ -201,6 +275,25 @@ function draw(time) {
 
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
+
+  // 花瓣
+  for (const p of petals) {
+    p.y += p.speedY * (time - (p._lastTime || time));
+    p.x += p.speedX + Math.sin(t * p.sway + p.swayOffset) * 0.00025;
+    p.rot += p.rotSpeed;
+    p._lastTime = time;
+
+    const px = p.x * W;
+    const py = p.y * H;
+    drawPetal(px, py, p.size, p.rot, p.opacity, p.r, p.g, p.b);
+
+    if (p.y > 1.05) {
+      const fresh = createPetal();
+      Object.assign(p, fresh);
+    }
+  }
+
+  drawText(t);
 
   requestAnimationFrame(draw);
 }
